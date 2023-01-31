@@ -11,7 +11,7 @@ from gp_list import *
 
 class gp_tree:
     def __init__(self, list_T=None, list_F=None, level=0, nom_list='1', type_ini='full',
-                 limit_level=2 ) -> None:
+                 limit_level=2) -> None:
         
         #происходит инициализация дерева рекурсивным способом
         if type_ini=='full':
@@ -23,6 +23,15 @@ class gp_tree:
             else:
                 i=np.random.randint(len(list_T))
                 self.list=list_T[i].copy()
+        elif type_ini=='null':
+            #инициируем только один  пустой узел без вызова дочерних узлов
+            self.level=level 
+            self.nom_list=nom_list
+            self.list=None
+            self.num_childs=0
+            self.childs=[]
+            return
+            
         else:
             raise RuntimeError("Ошибка определения метода инициализации дерева {0}".format(type_ini))
             return False
@@ -38,7 +47,7 @@ class gp_tree:
             self.childs.append(сhild)
         
         return
-    
+    #--------------------------------------------------------------------------
     def print_tree(self):
         #отображение дерева в строку
         if len(self.childs)==0:
@@ -54,7 +63,7 @@ class gp_tree:
                 
             rez+=')'
         return rez
-                
+    #--------------------------------------------------------------------------            
     def eval(self, params):
         #отображение дерева в строку
         if len(self.childs)==0:
@@ -63,9 +72,22 @@ class gp_tree:
             childs=[]
             for i in range(len(self.childs)):
                 childs.append(self.childs[i].eval(params=params))
-                
-                
         return self.list.eval(childs=childs, params=params)
+    #--------------------------------------------------------------------------
+    def copy(self):
+        #copy текущего узла и всего поддерева
+        
+        tree_list=gp_tree(level=self.level, nom_list=self.nom_list,
+                      type_ini='null')
+        tree_list.list=self.list.copy()
+            
+        if len(self.childs)!=0:
+            childs=[]
+            for i in range(len(self.childs)):
+                childs.append(self.childs[i].copy())
+            tree_list.childs=childs
+            tree_list.num_childs=len(childs)
+        return tree_list
                             
     
 if __name__=='__main__':
@@ -87,11 +109,16 @@ if __name__=='__main__':
     list_T.append(list_variable(name='x4'))
     
     tree=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-                 limit_level=4)
+                 limit_level=10)
     str_tree=tree.print_tree()
     
     params={'x1':1,'x2':2, 'x3':3, 'x4':4 }
     rez=tree.eval(params)
+    
+    copy_tree=tree.copy()
+    
+    str__copy_tree=copy_tree.print_tree()
+    rez_copy=copy_tree.eval(params)
     
     
     
