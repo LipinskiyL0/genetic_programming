@@ -2,7 +2,22 @@
 
 28.01.2023 
 Класс реализует дерево для реализации расчетов генетического программирования
-
+gp_tree:
+    def __init__(self, list_T=None, list_F=None, level=0, nom_list='1', type_ini='full',
+                 limit_level=2) -> None: - инициализация класса
+                list_T - массив терминальных листов
+                list_F - массив функциональных листов
+                level - уровень узла в дереве
+                nom_list - номер листа в дереве. номер устанавливается так: берется номер
+                            родительского узла и через "." добавляется порядковый номер текущего 
+                            узла как потомка родительского узла. 
+                type_ini - способ инициализации: full - все узлы функциональные кроме последнего уровня
+                            на котором узлы терминальные, null - пустой узел без роста поддеревьев
+                limit_level - предельный уровень роста дерева. 
+    def print_tree(self): - печатает дерево в строку
+    def copy(self): - создает копию дерева
+    def eval(self, params): - вычисляем дерево. params - словарь параметров
+    
 
 '''
 
@@ -78,7 +93,7 @@ class gp_tree:
         #copy текущего узла и всего поддерева
         
         tree_list=gp_tree(level=self.level, nom_list=self.nom_list,
-                      type_ini='null')
+                      type_ini='null', limit_level=limit_level)
         tree_list.list=self.list.copy()
             
         if len(self.childs)!=0:
@@ -88,6 +103,24 @@ class gp_tree:
             tree_list.childs=childs
             tree_list.num_childs=len(childs)
         return tree_list
+    #--------------------------------------------------------------------------
+    def recombination(self, gp_tree, old ):
+        #для текущего узла и его подузлов находим узел с номером old
+        #заменяем его содержимое содержимым  gp_tree включая все поддерево. 
+        #затем обновляем нумерацию
+        
+        tree_list=gp_tree(level=self.level, nom_list=self.nom_list,
+                      type_ini='null', limit_level=limit_level)
+        tree_list.list=self.list.copy()
+            
+        if len(self.childs)!=0:
+            childs=[]
+            for i in range(len(self.childs)):
+                childs.append(self.childs[i].copy())
+            tree_list.childs=childs
+            tree_list.num_childs=len(childs)
+        return tree_list
+
                             
     
 if __name__=='__main__':
