@@ -38,6 +38,24 @@ class gp_tree:
             else:
                 i=np.random.randint(len(list_T))
                 self.list=list_T[i].copy()
+        elif type_ini=='nofull':
+            #инициируем дерево методом не полного роста
+            if level<limit_level:
+                #если не достигли еще глубины инциализируем либо функциональным узлом,
+                #либо терминальным
+                if np.random.rand()<0.5:
+                    #инициализируем функциональным узлом
+                    i=np.random.randint(len(list_F))
+                    self.list=list_F[i].copy()
+                else:
+                    #инициализируем терминальным узлом
+                    i=np.random.randint(len(list_T))
+                    self.list=list_T[i].copy()
+            else:
+                #если уровень предельный, то по любому инициируем терминальным узлом
+                i=np.random.randint(len(list_T))
+                self.list=list_T[i].copy()
+            
         elif type_ini=='null':
             #инициируем только один  пустой узел без вызова дочерних узлов
             self.level=level 
@@ -93,7 +111,7 @@ class gp_tree:
         #copy текущего узла и всего поддерева
         
         tree_list=gp_tree(level=self.level, nom_list=self.nom_list,
-                      type_ini='null', limit_level=limit_level)
+                      type_ini='null', limit_level=0)
         tree_list.list=self.list.copy()
             
         if len(self.childs)!=0:
@@ -108,18 +126,71 @@ class gp_tree:
         #для текущего узла и его подузлов находим узел с номером old
         #заменяем его содержимое содержимым  gp_tree включая все поддерево. 
         #затем обновляем нумерацию
-        
-        tree_list=gp_tree(level=self.level, nom_list=self.nom_list,
-                      type_ini='null', limit_level=limit_level)
-        tree_list.list=self.list.copy()
-            
-        if len(self.childs)!=0:
-            childs=[]
+        if self.nom_list==old:
+            #нашли нужный лист 
+            #заменяем функционал или терминал и поддерево потомков
+            self.list=gp_tree.list.copy()
+            self.num_childs=gp_tree.num_childs
+            self.childs=gp_tree.childs
+            if self.num_childs!=len(self.childs):
+                raise RuntimeError("Ошибка рекомбинации поддерева в узле {0} количество потомков не сходится".format(self.nom_list))
+                return False
             for i in range(len(self.childs)):
-                childs.append(self.childs[i].copy())
-            tree_list.childs=childs
-            tree_list.num_childs=len(childs)
-        return tree_list
+                self.childs[i].update_numper(level=self.level+1, nom_list=self.nom_list+'.'+str(i+1))
+        else:
+            for i in range(len(self.childs)):
+                self.childs[i].recombination(gp_tree, old )
+                
+        return True
+    #--------------------------------------------------------------------------
+    def update_numper(self, level, nom_list ):
+        #для текущего узла и его подузлов обновляем нумерацию
+        #используется в recombination
+        self.level=level
+        self.nom_list=str(nom_list)
+        for i in range(len(self.childs)):
+            self.childs[i].update_numper(level=level+1, nom_list=nom_list+'.'+str(i+1))
+        return True
+    #--------------------------------------------------------------------------
+    def get_tree_number(self):
+        #отображение номеров узлов для проверки корректности процедуры рекомбинации
+        if len(self.childs)==0:
+            return self.nom_list
+        else:
+            rez=''
+            rez+=self.nom_list+'('
+            for i in range(len(self.childs)):
+                rez+=self.childs[i].get_tree_number()
+                
+                if i!=len(self.childs)-1:
+                    rez+=', '
+                
+            rez+=')'
+        return rez
+    #--------------------------------------------------------------------------
+    def get_node(self, nom):
+        #возвращает узел по номеру
+        
+        #если нашли нужный узел, то его и возвращаем
+        if self.nom_list==nom:
+            return self
+        
+        #если мы дошли до терминального узла, то возвращаем False
+        if self.num_childs==0:
+            return False
+        
+        #если это функциональный узел, то перебираем потомков и проверяем кто из
+        #них возвращает не False. Если все потомки возвращают False, то 
+        #то возвращаем False
+        for i in range(len(self.childs)):
+            node=self.childs[i].get_node(nom)
+            if node!=False:
+                return node
+        return False
+                
+                
+        
+        
 
                             
     
@@ -141,18 +212,58 @@ if __name__=='__main__':
     list_T.append(list_variable(name='x3'))
     list_T.append(list_variable(name='x4'))
     
-    tree=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-                 limit_level=10)
-    str_tree=tree.print_tree()
+    #==========================================================================
+    # tree=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='nofull',
+    #               limit_level=4)
+    # # проверка корректности вычисления
+    # str_tree=tree.print_tree()
+    # print(str_tree)
+    # print(tree.get_tree_number())
+    # params={'x1':1,'x2':2, 'x3':3, 'x4':4 }
+    # rez=tree.eval(params)
+    # print(rez)
+    # copy_tree=tree.copy()
     
-    params={'x1':1,'x2':2, 'x3':3, 'x4':4 }
-    rez=tree.eval(params)
+    # str_copy_tree=copy_tree.print_tree()
+    # print(str_copy_tree)
+    # print(copy_tree.get_tree_number())
+    # rez_copy=copy_tree.eval(params)
+    # print(rez_copy)
+    #==========================================================================
+    # #проверка корректности рекомбинации 
+    # tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+    #              limit_level=2)
+    # tree2=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+    #              limit_level=2)
+    # print('первое дерево')
+    # print(tree1.print_tree())
+    # print('\n второе дерево')
+    # print(tree2.print_tree())
     
-    copy_tree=tree.copy()
+    # tree1.recombination(tree2, '1.1.1')
+    # print("дерево 3\n",tree1.print_tree())
     
-    str__copy_tree=copy_tree.print_tree()
-    rez_copy=copy_tree.eval(params)
+    # print('\n номерация \n', tree1.get_tree_number())
     
+    #==========================================================================
+    
+    #проверка корректности рекомбинации  2
+    # tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+    #              limit_level=3)
+    # tree2=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+    #              limit_level=2)
+    
+    # print('первое дерево')
+    # print(tree1.print_tree())
+    # print('\n второе дерево')
+    # print(tree2.print_tree())
+    
+    # node=tree2.get_node('1')
+    # if node!=False:
+    #     tree1.recombination(node, '1.1.1.1')
+    # print("дерево 3\n",tree1.print_tree())
+    
+    # print('\n номерация \n', tree1.get_tree_number())
     
     
     
