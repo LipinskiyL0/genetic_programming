@@ -30,21 +30,16 @@ class DenseNN(tf.Module):
             return tf.nn.softmax(y)
  
         return y
+layer_1 = DenseNN(128)
+layer_2 = DenseNN(10, activate="softmax")
 
-class SequentialModule(tf.Module):
-    def __init__(self):
-        super().__init__()
-        self.layer_1 = DenseNN(128)
-        self.layer_2 = DenseNN(10, activate="softmax")
-        self.learning_rate=0.01
-    def __call__(self, x):
-        return self.layer_2(self.layer_1(x))
-    
-    def apply_grad(self, grads):
-        for grad, var in zip(grads, self.trainable_variables):
-            var.assign_sub(learning_rate * grad)
+def model_predict(x):
+    y = layer_1(x)
+    y = layer_2(y)
+    return y      
 
-    
+
+
 if __name__ == '__main__':
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train = x_train / 255
@@ -57,12 +52,11 @@ if __name__ == '__main__':
     cross_entropy = lambda y_true, y_pred: tf.reduce_mean(tf.losses.categorical_crossentropy(y_true, y_pred))
     opt = tf.optimizers.Adam(learning_rate=0.001)
     BATCH_SIZE = 32
-    EPOCHS = 10
+    EPOCHS = 20
     TOTAL = x_train.shape[0]
     learning_rate=0.01
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     train_dataset = train_dataset.shuffle(buffer_size=1024).batch(BATCH_SIZE)
-    model_predict=SequentialModule()
     for n in range(EPOCHS):
         loss = 0
         for x_batch, y_batch in train_dataset:
@@ -70,9 +64,9 @@ if __name__ == '__main__':
                 f_loss = cross_entropy(y_batch, model_predict(x_batch))
     
             loss += f_loss
-            grads = tape.gradient(f_loss, model_predict.trainable_variables)
-            # opt.apply_gradients(zip(grads, model_predict.trainable_variables))
-            model_predict.apply_grad(grads)
+            grads = tape.gradient(f_loss, [layer_1.trainable_variables, layer_2.trainable_variables])
+            opt.apply_gradients(zip(grads[0], layer_1.trainable_variables))
+            opt.apply_gradients(zip(grads[1], layer_2.trainable_variables))
             # layer_1.trainable_variables[0].assign_sub(learning_rate * grads[0][0])
             # layer_1.trainable_variables[1].assign_sub(learning_rate * grads[0][1])
             # layer_2.trainable_variables[0].assign_sub(learning_rate * grads[1][0])
