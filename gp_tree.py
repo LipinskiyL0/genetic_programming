@@ -22,6 +22,7 @@ gp_tree:
 '''
 
 import numpy as np
+import pandas as pd
 from gp_list import *
 
 class gp_tree:
@@ -187,7 +188,39 @@ class gp_tree:
             if node!=False:
                 return node
         return False
-                
+    #--------------------------------------------------------------------------
+    def mutation(self, p, mas_for_mut):
+        #мутирует текущий узел на узел с равным количеством потомков 
+        #с вероятностью p. mas_for_mut - массив с перечнем узлов.
+        #формат массива: [сам узел,название узла, количество потомков]
+        #для терминальных узлов указано 0 потомков
+        
+        #алгоритм:
+        #разыгрываем вероятность для текущего узла. Если событие случилось, то
+        #выбираем из списка узлы с соответствующим количеством потомков и 
+        #выбираем случайно на какой узел заменить. 
+        #далее, неважно случилось событие или нет вызываем дочерние узлы
+        
+        
+    
+        #если нашли нужный узел, то его и возвращаем
+        if np.random.rand()<=p:
+            #событие случилось
+            mas_for_mut_n=mas_for_mut[mas_for_mut['num_childs']==self.list.num_childs]
+            if len(mas_for_mut_n)!=0:
+                list_new=mas_for_mut_n['list'].iloc[np.random.randint(len(mas_for_mut_n))]
+                self.list=list_new.copy()
+        
+        #если мы дошли до терминального узла, то возвращаемся
+        if self.num_childs==0:
+            return
+        
+        #если это функциональный узел, то перебираем потомков и вызываем мутацию
+        #в каждом потомке
+        for i in range(len(self.childs)):
+            node=self.childs[i].mutation(p, mas_for_mut)
+            
+        return
                 
         
         
@@ -199,6 +232,10 @@ if __name__=='__main__':
     list_F.append(list_sum(num_childs=1))
     list_F.append(list_sum(num_childs=2))
     list_F.append(list_sum(num_childs=3))
+    
+    list_F.append(list_prod(num_childs=1))
+    list_F.append(list_prod(num_childs=2))
+    list_F.append(list_prod(num_childs=3))
     
     list_F.append(list_sin())
     
@@ -232,9 +269,9 @@ if __name__=='__main__':
     #==========================================================================
     # #проверка корректности рекомбинации 
     # tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-    #              limit_level=2)
+    #               limit_level=2)
     # tree2=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-    #              limit_level=2)
+    #               limit_level=2)
     # print('первое дерево')
     # print(tree1.print_tree())
     # print('\n второе дерево')
@@ -265,6 +302,16 @@ if __name__=='__main__':
     
     # print('\n номерация \n', tree1.get_tree_number())
     
+    #==========================================================================
+    #проверка корректности мутации
+    tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+                  limit_level=10)
+    mas_for_mut=[]
+    for l in list_F+list_T:
+        mas_for_mut.append([l,l.get_name(), l.num_childs])
     
-    
+    mas_for_mut=pd.DataFrame(mas_for_mut, columns=['list', 'list_name', 'num_childs'])
+    print(tree1.print_tree())
+    tree1.mutation(0.3, mas_for_mut)
+    print(tree1.print_tree())
     

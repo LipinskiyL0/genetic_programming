@@ -95,7 +95,28 @@ class list_sum:
     
     def get_name(self):
         return self.name+str(self.num_childs)
+#==============================================================================
+class list_prod:
+    def __init__(self, num_childs=2 ) -> None:
+        self.name='prod'
+        self.num_childs=num_childs
+    def eval(self, childs=None, params=None):
+        #для общности в каждый узел передаем и потомков и параметры
+        try:
+            return np.prod(childs, axis=0)
+        except:
+            
+            raise RuntimeError("Ошибка вычисления узла типа list_prod: name={0}, childs={1}".format(self.name,childs ))
+        return False
+    def copy(self):
+        #функция выполняет полную копию узла
+        rez=list_prod()
+        rez.name=self.name
+        rez.num_childs=self.num_childs
+        return rez
     
+    def get_name(self):
+        return self.name+str(self.num_childs)    
 #==============================================================================
 class list_sin:
     def __init__(self) -> None:
