@@ -4,6 +4,8 @@ import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
 import numpy as np
+from datetime import datetime
+from my_MomentumOpt import MyMomentumOptimizer
 
 class DenseNN(tf.Module):
     def __init__(self, outputs, activate="relu"):
@@ -30,16 +32,32 @@ class DenseNN(tf.Module):
             return tf.nn.softmax(y)
  
         return y
-layer_1 = DenseNN(128)
-layer_2 = DenseNN(10, activate="softmax")
 
-def model_predict(x):
-    y = layer_1(x)
-    y = layer_2(y)
-    return y      
+class SequentialModule(tf.Module):
+    def __init__(self):
+        super().__init__()
+        self.layer_1 = DenseNN(128)
+        self.layer_2 = DenseNN(10, activate="softmax")
+        self.learning_rate=0.01
+    def __call__(self, x):
+        return self.layer_2(self.layer_1(x))
+    
+    def apply_grad(self, grads):
+        for grad, var in zip(grads, self.trainable_variables):
+            var.assign_sub(learning_rate * grad)
+cross_entropy = lambda y_true, y_pred: tf.reduce_mean(tf.losses.categorical_crossentropy(y_true, y_pred))
+model_predict=SequentialModule()
 
-
-
+@tf.function
+def train_batch(x_batch, y_batch):
+    with tf.GradientTape() as tape:
+        f_loss = cross_entropy(y_batch, model_predict(x_batch))
+ 
+    grads = tape.gradient(f_loss, model_predict.trainable_variables)
+    opt1.apply_gradients(zip(grads, model_predict.trainable_variables))
+    # model_predict.apply_grad(grads)
+    return f_loss
+    
 if __name__ == '__main__':
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train = x_train / 255
@@ -49,32 +67,27 @@ if __name__ == '__main__':
     x_test = tf.reshape(tf.cast(x_test, tf.float32), [-1, 28*28])
     
     y_train = to_categorical(y_train, 10)
-    cross_entropy = lambda y_true, y_pred: tf.reduce_mean(tf.losses.categorical_crossentropy(y_true, y_pred))
+    
+    t0 = datetime.now()
     opt = tf.optimizers.Adam(learning_rate=0.001)
+    opt1 = MyMomentumOptimizer(learning_rate=0.01)
+
     BATCH_SIZE = 32
     EPOCHS = 20
     TOTAL = x_train.shape[0]
     learning_rate=0.01
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     train_dataset = train_dataset.shuffle(buffer_size=1024).batch(BATCH_SIZE)
+    
     for n in range(EPOCHS):
         loss = 0
         for x_batch, y_batch in train_dataset:
-            with tf.GradientTape() as tape:
-                f_loss = cross_entropy(y_batch, model_predict(x_batch))
-    
-            loss += f_loss
-            grads = tape.gradient(f_loss, [layer_1.trainable_variables, layer_2.trainable_variables])
-            opt.apply_gradients(zip(grads[0], layer_1.trainable_variables))
-            opt.apply_gradients(zip(grads[1], layer_2.trainable_variables))
-            # layer_1.trainable_variables[0].assign_sub(learning_rate * grads[0][0])
-            # layer_1.trainable_variables[1].assign_sub(learning_rate * grads[0][1])
-            # layer_2.trainable_variables[0].assign_sub(learning_rate * grads[1][0])
-            # layer_2.trainable_variables[1].assign_sub(learning_rate * grads[1][1])
-            
-    
+            loss += train_batch(x_batch, y_batch)
         print(loss.numpy())
+        
     y = model_predict(x_test)
     y2 = tf.argmax(y, axis=1).numpy()
     acc = len(y_test[y_test == y2])/y_test.shape[0] * 100
     print(acc)
+    t1 = datetime.now()
+    print('время обучения: ', t1-t0)

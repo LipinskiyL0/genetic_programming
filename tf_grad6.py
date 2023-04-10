@@ -44,7 +44,18 @@ class SequentialModule(tf.Module):
     def apply_grad(self, grads):
         for grad, var in zip(grads, self.trainable_variables):
             var.assign_sub(learning_rate * grad)
+cross_entropy = lambda y_true, y_pred: tf.reduce_mean(tf.losses.categorical_crossentropy(y_true, y_pred))
+model_predict=SequentialModule()
 
+@tf.function
+def train_batch(x_batch, y_batch):
+    with tf.GradientTape() as tape:
+        f_loss = cross_entropy(y_batch, model_predict(x_batch))
+ 
+    grads = tape.gradient(f_loss, model_predict.trainable_variables)
+    opt.apply_gradients(zip(grads, model_predict.trainable_variables))
+    # model_predict.apply_grad(grads)
+    return f_loss
     
 if __name__ == '__main__':
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
@@ -55,33 +66,22 @@ if __name__ == '__main__':
     x_test = tf.reshape(tf.cast(x_test, tf.float32), [-1, 28*28])
     
     y_train = to_categorical(y_train, 10)
-    cross_entropy = lambda y_true, y_pred: tf.reduce_mean(tf.losses.categorical_crossentropy(y_true, y_pred))
+    
     t0 = datetime.now()
     opt = tf.optimizers.Adam(learning_rate=0.001)
     BATCH_SIZE = 32
-    EPOCHS = 100
+    EPOCHS = 20
     TOTAL = x_train.shape[0]
     learning_rate=0.01
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
     train_dataset = train_dataset.shuffle(buffer_size=1024).batch(BATCH_SIZE)
-    model_predict=SequentialModule()
+    
     for n in range(EPOCHS):
         loss = 0
         for x_batch, y_batch in train_dataset:
-            with tf.GradientTape() as tape:
-                f_loss = cross_entropy(y_batch, model_predict(x_batch))
-    
-            loss += f_loss
-            grads = tape.gradient(f_loss, model_predict.trainable_variables)
-            # opt.apply_gradients(zip(grads, model_predict.trainable_variables))
-            model_predict.apply_grad(grads)
-            # layer_1.trainable_variables[0].assign_sub(learning_rate * grads[0][0])
-            # layer_1.trainable_variables[1].assign_sub(learning_rate * grads[0][1])
-            # layer_2.trainable_variables[0].assign_sub(learning_rate * grads[1][0])
-            # layer_2.trainable_variables[1].assign_sub(learning_rate * grads[1][1])
-            
-    
+            loss += train_batch(x_batch, y_batch)
         print(loss.numpy())
+        
     y = model_predict(x_test)
     y2 = tf.argmax(y, axis=1).numpy()
     acc = len(y_test[y_test == y2])/y_test.shape[0] * 100
