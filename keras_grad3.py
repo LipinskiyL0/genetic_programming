@@ -8,7 +8,8 @@ from tensorflow.keras.utils import to_categorical
 import numpy as np
 from datetime import datetime
 from my_optim import SGOptimizer
-from my_MomentumOpt import MyMomentumOptimizer
+from my_MomentumOpt_tree import MyMomentumOptimizer_tree
+from gp_tree_tensor_TF import *
 
 
     
@@ -25,7 +26,7 @@ if __name__ == '__main__':
     t0 = datetime.now()
     opt = tf.optimizers.Adam(learning_rate=0.001)
     opt1 = SGOptimizer()
-    opt2 = MyMomentumOptimizer(learning_rate=0.01)
+    opt2 = MyMomentumOptimizer_tree(learning_rate=0.01, tree=tree12)
 
     BATCH_SIZE = 32
     EPOCHS = 20
@@ -40,7 +41,7 @@ if __name__ == '__main__':
     model.compile(optimizer=opt2,
                 loss=tf.losses.categorical_crossentropy,
                 metrics=['accuracy'])
-    model.fit(x_train, y_train, batch_size=32, epochs=20)
+    model.fit(x_train, y_train, batch_size=32, epochs=EPOCHS)
 
     y = model.predict(x_test)
     y2 = tf.argmax(y, axis=1).numpy()

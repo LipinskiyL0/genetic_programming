@@ -4,7 +4,7 @@
 Класс реализует дерево для реализации расчетов генетического программирования
 gp_tree:
     def __init__(self, list_T=None, list_F=None, level=0, nom_list='1', type_ini='full',
-                 limit_level=2) -> None: - инициализация класса
+                 limit_level=2, childs=None, cur_list=None) -> None: - инициализация класса
                 list_T - массив терминальных листов
                 list_F - массив функциональных листов
                 level - уровень узла в дереве
@@ -12,8 +12,12 @@ gp_tree:
                             родительского узла и через "." добавляется порядковый номер текущего 
                             узла как потомка родительского узла. 
                 type_ini - способ инициализации: full - все узлы функциональные кроме последнего уровня
-                            на котором узлы терминальные, null - пустой узел без роста поддеревьев
-                limit_level - предельный уровень роста дерева. 
+                            на котором узлы терминальные, nofull - не полный рост, когда узлы генерируются случайно (может быть
+                            терминальный или функциональный), но если дошли до последнего уровня, то точно терминальный
+                            null - пустой узел без роста поддеревьев
+                            manual - инициализация происходит в ручную операясь на переменные: nom_list, level, childs, cur_list
+                limit_level - предельный уровень роста дерева
+
     def print_tree(self): - печатает дерево в строку
     def copy(self): - создает копию дерева
     def eval(self, params): - вычисляем дерево. params - словарь параметров
@@ -27,7 +31,7 @@ from gp_list import *
 
 class gp_tree:
     def __init__(self, list_T=None, list_F=None, level=0, nom_list='1', type_ini='full',
-                 limit_level=2) -> None:
+                 limit_level=2, childs=[], cur_list=None) -> None:
         
         #происходит инициализация дерева рекурсивным способом
         if type_ini=='full':
@@ -64,6 +68,16 @@ class gp_tree:
             self.list=None
             self.num_childs=0
             self.childs=[]
+            return
+        elif type_ini=='manual':
+            #инициируем узел в ручную. При этом потомки передаются через переменную childs, а 
+            #вычислительная часть узла через переменную cur_list
+            #номерация узлов тоже выполняется вручную
+            self.level=level 
+            self.nom_list=nom_list
+            self.list=cur_list
+            self.num_childs=len(childs)
+            self.childs=childs
             return
             
         else:
@@ -267,20 +281,20 @@ if __name__=='__main__':
     # rez_copy=copy_tree.eval(params)
     # print(rez_copy)
     #==========================================================================
-    # #проверка корректности рекомбинации 
-    # tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-    #               limit_level=2)
-    # tree2=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-    #               limit_level=2)
-    # print('первое дерево')
-    # print(tree1.print_tree())
-    # print('\n второе дерево')
-    # print(tree2.print_tree())
+    #проверка корректности рекомбинации 
+    tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+                  limit_level=2)
+    tree2=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+                  limit_level=2)
+    print('первое дерево')
+    print(tree1.print_tree())
+    print('\n второе дерево')
+    print(tree2.print_tree())
     
-    # tree1.recombination(tree2, '1.1.1')
-    # print("дерево 3\n",tree1.print_tree())
+    tree1.recombination(tree2, '1.1.1')
+    print("дерево 3\n",tree1.print_tree())
     
-    # print('\n номерация \n', tree1.get_tree_number())
+    print('\n номерация \n', tree1.get_tree_number())
     
     #==========================================================================
     
@@ -304,14 +318,14 @@ if __name__=='__main__':
     
     #==========================================================================
     #проверка корректности мутации
-    tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
-                  limit_level=10)
-    mas_for_mut=[]
-    for l in list_F+list_T:
-        mas_for_mut.append([l,l.get_name(), l.num_childs])
+    # tree1=gp_tree(list_T=list_T, list_F=list_F, level=0, nom_list='1', type_ini='full',
+    #               limit_level=10)
+    # mas_for_mut=[]
+    # for l in list_F+list_T:
+    #     mas_for_mut.append([l,l.get_name(), l.num_childs])
     
-    mas_for_mut=pd.DataFrame(mas_for_mut, columns=['list', 'list_name', 'num_childs'])
-    print(tree1.print_tree())
-    tree1.mutation(0.3, mas_for_mut)
-    print(tree1.print_tree())
+    # mas_for_mut=pd.DataFrame(mas_for_mut, columns=['list', 'list_name', 'num_childs'])
+    # print(tree1.print_tree())
+    # tree1.mutation(0.3, mas_for_mut)
+    # print(tree1.print_tree())
     
