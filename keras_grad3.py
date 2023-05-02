@@ -10,7 +10,9 @@ from datetime import datetime
 from my_optim import SGOptimizer
 from my_MomentumOpt_tree import MyMomentumOptimizer_tree
 from gp_tree_tensor_TF import *
-
+from gp_tree_tensor_TF2 import *
+from gp_tree_tensor_АdaGrad import tree_AdaGrad
+from gp_tree_tensor_RMSProp import tree_RMSProp
 
     
 if __name__ == '__main__':
@@ -24,12 +26,17 @@ if __name__ == '__main__':
     y_train = to_categorical(y_train, 10)
     
     t0 = datetime.now()
-    opt = tf.optimizers.Adam(learning_rate=0.001)
+    opt = tf.optimizers.Adam(learning_rate=0.01)
     opt1 = SGOptimizer()
     opt2 = MyMomentumOptimizer_tree(learning_rate=0.01, tree=tree12)
+    opt3 = MyMomentumOptimizer_tree(learning_rate=0.01, tree=tree_grad)
+    opt4 = MyMomentumOptimizer_tree(learning_rate=0.01, tree=tree_AdaGrad)
+    opt_RMSProp = MyMomentumOptimizer_tree(learning_rate=0.001, tree=tree_RMSProp)
+    opt5=tf.keras.optimizers.Adagrad(learning_rate=0.01)
+    opt_RMSProp_TF=tf.keras.optimizers.RMSprop(learning_rate=0.01)
 
     BATCH_SIZE = 32
-    EPOCHS = 20
+    EPOCHS = 10
     TOTAL = x_train.shape[0]
     learning_rate=0.01
     train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
@@ -38,7 +45,7 @@ if __name__ == '__main__':
     model.add(Dense(128, input_dim=28*28,  activation='relu'))
     model.add(Dense(10, activation='softmax'))
     
-    model.compile(optimizer=opt2,
+    model.compile(optimizer=opt_RMSProp_TF,
                 loss=tf.losses.categorical_crossentropy,
                 metrics=['accuracy'])
     model.fit(x_train, y_train, batch_size=32, epochs=EPOCHS)

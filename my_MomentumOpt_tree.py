@@ -24,6 +24,9 @@ class MyMomentumOptimizer_tree(keras.optimizers.Optimizer):
         """
         for var in var_list:
             self.add_slot(var, "momentum")
+        
+        for var in var_list:
+            self.add_slot(var, "slot_s")
 
     @tf.function
     def _resource_apply_dense(self, grad, var):
@@ -34,12 +37,14 @@ class MyMomentumOptimizer_tree(keras.optimizers.Optimizer):
         var_dtype = var.dtype.base_dtype
         lr_t = self._decayed_lr(var_dtype) # handle learning rate decay
         momentum_var = self.get_slot(var, "momentum")
+        slot_s_var = self.get_slot(var, "slot_s")
         momentum_hyper = self._get_hyper("momentum", var_dtype)
-        params={'m0':momentum_var, 'b':momentum_hyper, 'lr':lr_t, 'grad':grad}
+        params={'m0':momentum_var, 'b':momentum_hyper,  'grad':grad, 's0':slot_s_var, 's1':slot_s_var}
         moment=self.tree.eval(params)
         # momentum_var.assign(momentum_var * momentum_hyper - (1. - momentum_hyper)* grad)
         # var.assign_add(momentum_var * lr_t)
         momentum_var.assign(moment)
+        slot_s_var.assign(params['s1'])
         var.assign_add(moment * lr_t)
         
        
